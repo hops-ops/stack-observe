@@ -1,0 +1,12 @@
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: observe-datasource-tempo
+  annotations:
+    crossplane.io/composition-resource-name: datasource-tempo
+status:
+  conditions:
+  - type: Ready
+    status: "True"
+  - type: Synced
+    status: "True"

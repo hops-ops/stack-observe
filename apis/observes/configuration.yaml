@@ -1,0 +1,24 @@
+apiVersion: meta.pkg.crossplane.io/v1alpha1
+kind: Configuration
+metadata:
+  name: stack-observe
+  annotations:
+    meta.crossplane.io/maintainer: Patrick Lee Scott
+    meta.crossplane.io/source: github.com/hops-ops/stack-observe
+    meta.crossplane.io/description: Complete observability stack composing kube-prometheus-stack, Loki, Tempo, k8s-monitoring, and Grafana Operator.
+spec:
+  dependsOn:
+  - function: xpkg.crossplane.io/crossplane-contrib/function-auto-ready
+    version: ">=v0.6.0"
+  - configuration: ghcr.io/hops-ops/helm-kube-prometheus-stack
+    version: ">=v0.1.0"
+  - configuration: ghcr.io/hops-ops/helm-loki
+    version: ">=v0.1.0"
+  - configuration: ghcr.io/hops-ops/helm-tempo
+    version: ">=v0.1.0"
+  - configuration: ghcr.io/hops-ops/helm-k8s-monitoring
+    version: ">=v0.1.0"
+  - configuration: ghcr.io/hops-ops/helm-grafana-operator
+    version: ">=v0.1.0"
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-kubernetes
+    version: ">=v1.2.0"

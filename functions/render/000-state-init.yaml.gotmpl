@@ -1,0 +1,95 @@
+# code: language=yaml
+#
+# Initialize $state with spec defaults
+#
+
+{{- $xr := getCompositeResource . }}
+{{- $spec := $xr.spec | default dict }}
+{{- $metadata := $xr.metadata | default dict }}
+
+# ==============================================================================
+# Core defaults
+# ==============================================================================
+{{- $name := $metadata.name | default "observe" }}
+{{- $clusterName := $spec.clusterName | default $name }}
+{{- $namespace := $spec.namespace | default "monitoring" }}
+{{- $managementPolicies := $spec.managementPolicies | default (list "*") }}
+
+# Labels
+{{- $defaultLabels := dict
+  "hops.ops.com.ai/managed" "true"
+  "hops.ops.com.ai/observe" $name
+}}
+{{- $labels := merge $defaultLabels ($spec.labels | default dict) }}
+
+# Provider config (defaults to clusterName)
+{{- $providerConfigRef := $spec.providerConfigRef | default dict }}
+{{- $providerConfigRef = dict
+  "name" ($providerConfigRef.name | default $clusterName)
+  "kind" ($providerConfigRef.kind | default "ProviderConfig")
+}}
+
+# Kubernetes provider config (defaults to clusterName)
+{{- $k8sProviderConfigRef := $spec.kubernetesProviderConfigRef | default dict }}
+{{- $k8sProviderConfigRef = dict
+  "name" ($k8sProviderConfigRef.name | default $clusterName)
+  "kind" ($k8sProviderConfigRef.kind | default "ProviderConfig")
+}}
+
+# ==============================================================================
+# Per-component defaults
+# ==============================================================================
+{{- $kps := $spec.kubePrometheusStack | default dict }}
+{{- $loki := $spec.loki | default dict }}
+{{- $tempo := $spec.tempo | default dict }}
+{{- $k8sMon := $spec.k8sMonitoring | default dict }}
+{{- $grafOp := $spec.grafanaOperator | default dict }}
+
+# k8s-monitoring stack defaults: nodeExporter disabled (prom-stack handles it)
+{{- $k8sMonStackDefaults := dict "nodeExporter" (dict "enabled" false) }}
+{{- $k8sMonValues := merge ($k8sMon.values | default dict) $k8sMonStackDefaults }}
+
+# ==============================================================================
+# Initialize $state
+# ==============================================================================
+{{- $state := dict
+  "name" $name
+  "clusterName" $clusterName
+  "namespace" $namespace
+  "managementPolicies" $managementPolicies
+  "labels" $labels
+  "providerConfigRef" $providerConfigRef
+  "kubernetesProviderConfigRef" $k8sProviderConfigRef
+  "kubePrometheusStack" (dict
+    "name" ($kps.name | default "kube-prometheus-stack")
+    "namespace" ($kps.namespace | default $namespace)
+    "values" ($kps.values | default dict)
+    "overrideAllValues" ($kps.overrideAllValues | default dict)
+  )
+  "loki" (dict
+    "name" ($loki.name | default "loki")
+    "namespace" ($loki.namespace | default $namespace)
+    "values" ($loki.values | default dict)
+    "overrideAllValues" ($loki.overrideAllValues | default dict)
+  )
+  "tempo" (dict
+    "name" ($tempo.name | default "tempo")
+    "namespace" ($tempo.namespace | default $namespace)
+    "values" ($tempo.values | default dict)
+    "overrideAllValues" ($tempo.overrideAllValues | default dict)
+  )
+  "k8sMonitoring" (dict
+    "name" ($k8sMon.name | default "k8s-monitoring")
+    "namespace" ($k8sMon.namespace | default $namespace)
+    "values" $k8sMonValues
+    "overrideAllValues" ($k8sMon.overrideAllValues | default dict)
+  )
+  "grafanaOperator" (dict
+    "name" ($grafOp.name | default "grafana-operator")
+    "namespace" ($grafOp.namespace | default $namespace)
+    "values" ($grafOp.values | default dict)
+    "overrideAllValues" ($grafOp.overrideAllValues | default dict)
+  )
+  "observed" (dict)
+  "status" (dict)
+}}

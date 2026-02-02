@@ -1,0 +1,12 @@
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: K8sMonitoring
+metadata:
+  name: observe-k8s-monitoring
+  annotations:
+    crossplane.io/composition-resource-name: k8s-monitoring
+status:
+  conditions:
+  - type: Ready
+    status: "True"
+  - type: Synced
+    status: "True"

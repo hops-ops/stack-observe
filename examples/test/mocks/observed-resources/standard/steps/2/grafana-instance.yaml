@@ -1,0 +1,12 @@
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: observe-grafana-instance
+  annotations:
+    crossplane.io/composition-resource-name: grafana-instance
+status:
+  conditions:
+  - type: Ready
+    status: "True"
+  - type: Synced
+    status: "True"

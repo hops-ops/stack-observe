@@ -1,0 +1,12 @@
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: KubePrometheusStack
+metadata:
+  name: observe-kube-prometheus-stack
+  annotations:
+    crossplane.io/composition-resource-name: kube-prometheus-stack
+status:
+  conditions:
+  - type: Ready
+    status: "True"
+  - type: Synced
+    status: "True"

@@ -1,0 +1,86 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/KubePrometheusStack XR
+#
+
+{{- $kps := $state.kubePrometheusStack }}
+
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: KubePrometheusStack
+metadata:
+  name: {{ $state.name }}-{{ $kps.name }}
+  annotations:
+    {{ setResourceNameAnnotation "kube-prometheus-stack" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.providerConfigRef.name }}
+    kind: {{ $state.providerConfigRef.kind }}
+  namespace: {{ $kps.namespace }}
+  name: {{ $kps.name }}
+  {{- if $kps.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $kps.overrideAllValues | nindent 4 }}
+  {{- else if $kps.values }}
+  values:
+    {{- toYaml $kps.values | nindent 4 }}
+  {{- end }}
+
+# ==============================================================================
+# Usage: Protect kube-prometheus-stack from deletion until k8s-monitoring is deleted
+# ==============================================================================
+# k8s-monitoring sends metrics to Prometheus. Deleting Prometheus first would
+# leave k8s-monitoring unable to ship metrics.
+{{- if and $state.observed.kubePrometheusStack.ready $state.observed.k8sMonitoring.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-k8s-monitoring-before-kube-prometheus-stack
+  annotations:
+    {{ setResourceNameAnnotation "usage-kps-k8smon" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: KubePrometheusStack
+    resourceRef:
+      name: {{ $state.name }}-{{ $kps.name }}
+  by:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: K8sMonitoring
+    resourceRef:
+      name: {{ $state.name }}-{{ $state.k8sMonitoring.name }}
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect kube-prometheus-stack from deletion until grafana-operator is deleted
+# ==============================================================================
+# Grafana Operator extends Grafana from prom-stack. Delete operator first.
+{{- if and $state.observed.kubePrometheusStack.ready $state.observed.grafanaOperator.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-grafana-operator-before-kube-prometheus-stack
+  annotations:
+    {{ setResourceNameAnnotation "usage-kps-grafop" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: KubePrometheusStack
+    resourceRef:
+      name: {{ $state.name }}-{{ $kps.name }}
+  by:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: GrafanaOperator
+    resourceRef:
+      name: {{ $state.name }}-{{ $state.grafanaOperator.name }}
+{{- end }}

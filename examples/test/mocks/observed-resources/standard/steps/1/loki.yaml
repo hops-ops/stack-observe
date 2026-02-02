@@ -1,0 +1,12 @@
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: Loki
+metadata:
+  name: observe-loki
+  annotations:
+    crossplane.io/composition-resource-name: loki
+status:
+  conditions:
+  - type: Ready
+    status: "True"
+  - type: Synced
+    status: "True"

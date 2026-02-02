@@ -1,0 +1,46 @@
+# code: language=yaml
+#
+# Extract observed state from all composed resources and compute status
+#
+
+{{- $observed := $.observed.resources | default dict }}
+
+# ==============================================================================
+# Helper: check readiness of a composed resource by annotation name
+# ==============================================================================
+
+{{- $checkReady := dict }}
+{{- range $key := list "kube-prometheus-stack" "loki" "tempo" "k8s-monitoring" "grafana-operator" "grafana-instance" "datasource-prometheus" "datasource-loki" "datasource-tempo" }}
+  {{- $entry := get $observed $key | default dict }}
+  {{- $resource := $entry.resource | default dict }}
+  {{- $status := $resource.status | default dict }}
+  {{- $ready := false }}
+  {{- range ($status.conditions | default list) }}
+    {{- if and (eq .type "Ready") (eq .status "True") }}
+      {{- $ready = true }}
+    {{- end }}
+  {{- end }}
+  {{- $checkReady = set $checkReady $key $ready }}
+{{- end }}
+
+# ==============================================================================
+# Set observed state
+# ==============================================================================
+{{- $state = set $state "observed" (dict
+  "kubePrometheusStack" (dict "ready" (get $checkReady "kube-prometheus-stack"))
+  "loki" (dict "ready" (get $checkReady "loki"))
+  "tempo" (dict "ready" (get $checkReady "tempo"))
+  "k8sMonitoring" (dict "ready" (get $checkReady "k8s-monitoring"))
+  "grafanaOperator" (dict "ready" (get $checkReady "grafana-operator"))
+  "grafanaInstance" (dict "ready" (get $checkReady "grafana-instance"))
+  "datasourcePrometheus" (dict "ready" (get $checkReady "datasource-prometheus"))
+  "datasourceLoki" (dict "ready" (get $checkReady "datasource-loki"))
+  "datasourceTempo" (dict "ready" (get $checkReady "datasource-tempo"))
+) }}
+
+# ==============================================================================
+# Compute status (readiness determined by function-auto-ready)
+# ==============================================================================
+{{- $state = set $state "status" (dict
+  "ready" false
+) }}

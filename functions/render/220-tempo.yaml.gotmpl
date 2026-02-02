@@ -1,0 +1,59 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/Tempo XR
+#
+
+{{- $tempo := $state.tempo }}
+
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: Tempo
+metadata:
+  name: {{ $state.name }}-{{ $tempo.name }}
+  annotations:
+    {{ setResourceNameAnnotation "tempo" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.providerConfigRef.name }}
+    kind: {{ $state.providerConfigRef.kind }}
+  namespace: {{ $tempo.namespace }}
+  name: {{ $tempo.name }}
+  {{- if $tempo.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $tempo.overrideAllValues | nindent 4 }}
+  {{- else if $tempo.values }}
+  values:
+    {{- toYaml $tempo.values | nindent 4 }}
+  {{- end }}
+
+# ==============================================================================
+# Usage: Protect Tempo from deletion until k8s-monitoring is deleted
+# ==============================================================================
+# k8s-monitoring sends traces to Tempo. Deleting Tempo first would leave
+# k8s-monitoring unable to ship traces.
+{{- if and $state.observed.tempo.ready $state.observed.k8sMonitoring.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-k8s-monitoring-before-tempo
+  annotations:
+    {{ setResourceNameAnnotation "usage-tempo-k8smon" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: Tempo
+    resourceRef:
+      name: {{ $state.name }}-{{ $tempo.name }}
+  by:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: K8sMonitoring
+    resourceRef:
+      name: {{ $state.name }}-{{ $state.k8sMonitoring.name }}
+{{- end }}

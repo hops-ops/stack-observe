@@ -1,0 +1,18 @@
+apiVersion: stacks.hops.ops.com.ai/v1alpha1
+kind: Observe
+metadata:
+  name: observe
+  namespace: default
+spec:
+  clusterName: production-cluster
+  namespace: monitoring
+  labels:
+    team: platform
+  kubePrometheusStack:
+    values:
+      grafana:
+        adminPassword: changeme
+  k8sMonitoring:
+    values:
+      nodeExporter:
+        enabled: false

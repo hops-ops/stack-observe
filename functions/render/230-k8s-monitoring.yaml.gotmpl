@@ -1,0 +1,35 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/K8sMonitoring XR
+#
+# k8s-monitoring is the dependent resource - it depends on prom-stack, loki, and tempo.
+# Usages protecting those resources from premature deletion are co-located
+# with those resources (200, 210, 220).
+#
+
+{{- $k8sMon := $state.k8sMonitoring }}
+
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: K8sMonitoring
+metadata:
+  name: {{ $state.name }}-{{ $k8sMon.name }}
+  annotations:
+    {{ setResourceNameAnnotation "k8s-monitoring" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.providerConfigRef.name }}
+    kind: {{ $state.providerConfigRef.kind }}
+  namespace: {{ $k8sMon.namespace }}
+  name: {{ $k8sMon.name }}
+  {{- if $k8sMon.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $k8sMon.overrideAllValues | nindent 4 }}
+  {{- else if $k8sMon.values }}
+  values:
+    {{- toYaml $k8sMon.values | nindent 4 }}
+  {{- end }}

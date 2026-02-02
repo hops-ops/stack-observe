@@ -1,0 +1,302 @@
+# code: language=yaml
+#
+# Create Grafana CR (external mode) and GrafanaDatasource CRs on the target cluster
+# via provider-kubernetes Object resources.
+#
+# The Grafana Operator's instanceSelector on GrafanaDatasource CRs matches against
+# Grafana CRs, not Deployments. Since kube-prometheus-stack deploys Grafana via Helm
+# (not a Grafana CR), we create a Grafana CR in "external" mode pointing at the
+# existing Grafana service.
+#
+
+{{- $kps := $state.kubePrometheusStack }}
+{{- $loki := $state.loki }}
+{{- $tempo := $state.tempo }}
+{{- $grafOp := $state.grafanaOperator }}
+{{- $k8sPCR := $state.kubernetesProviderConfigRef }}
+
+# Service URLs derived from component names/namespaces
+{{- $grafanaServiceUrl := printf "http://%s-grafana.%s.svc:80" $kps.name $kps.namespace }}
+{{- $prometheusUrl := printf "http://%s-prometheus.%s.svc:9090" $kps.name $kps.namespace }}
+{{- $lokiUrl := printf "http://%s-gateway.%s.svc:80" $loki.name $loki.namespace }}
+{{- $tempoUrl := printf "http://%s.%s.svc:3100" $tempo.name $tempo.namespace }}
+
+# ==============================================================================
+# Grafana CR (external mode) - points operator at kube-prometheus-stack's Grafana
+# ==============================================================================
+# Gated on: grafana-operator must be ready (CRDs must exist)
+{{- if $state.observed.grafanaOperator.ready }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-grafana-instance
+  annotations:
+    {{ setResourceNameAnnotation "grafana-instance" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: Grafana
+      metadata:
+        name: {{ $state.name }}-grafana
+        namespace: {{ $kps.namespace }}
+        labels:
+          dashboards: grafana
+      spec:
+        external:
+          url: {{ $grafanaServiceUrl }}
+          adminPassword:
+            name: {{ $kps.name }}-grafana
+            key: admin-password
+          adminUser:
+            name: {{ $kps.name }}-grafana
+            key: admin-user
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# GrafanaDatasource: Prometheus
+# ==============================================================================
+# Gated on: grafana-operator + kube-prometheus-stack + grafana-instance must be ready
+{{- if and $state.observed.grafanaOperator.ready $state.observed.kubePrometheusStack.ready $state.observed.grafanaInstance.ready }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-datasource-prometheus
+  annotations:
+    {{ setResourceNameAnnotation "datasource-prometheus" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: GrafanaDatasource
+      metadata:
+        name: {{ $state.name }}-prometheus
+        namespace: {{ $kps.namespace }}
+      spec:
+        instanceSelector:
+          matchLabels:
+            dashboards: grafana
+        datasource:
+          name: Prometheus
+          type: prometheus
+          access: proxy
+          url: {{ $prometheusUrl }}
+          isDefault: true
+          jsonData:
+            timeInterval: 30s
+            httpMethod: POST
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# GrafanaDatasource: Loki
+# ==============================================================================
+# Gated on: grafana-operator + loki + grafana-instance must be ready
+{{- if and $state.observed.grafanaOperator.ready $state.observed.loki.ready $state.observed.grafanaInstance.ready }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-datasource-loki
+  annotations:
+    {{ setResourceNameAnnotation "datasource-loki" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: GrafanaDatasource
+      metadata:
+        name: {{ $state.name }}-loki
+        namespace: {{ $kps.namespace }}
+      spec:
+        instanceSelector:
+          matchLabels:
+            dashboards: grafana
+        datasource:
+          name: Loki
+          type: loki
+          access: proxy
+          url: {{ $lokiUrl }}
+          jsonData:
+            maxLines: 1000
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# GrafanaDatasource: Tempo
+# ==============================================================================
+# Gated on: grafana-operator + tempo + grafana-instance must be ready
+# Includes cross-links to Loki (tracesToLogs) and Prometheus (serviceMap)
+{{- if and $state.observed.grafanaOperator.ready $state.observed.tempo.ready $state.observed.grafanaInstance.ready }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-datasource-tempo
+  annotations:
+    {{ setResourceNameAnnotation "datasource-tempo" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: GrafanaDatasource
+      metadata:
+        name: {{ $state.name }}-tempo
+        namespace: {{ $kps.namespace }}
+      spec:
+        instanceSelector:
+          matchLabels:
+            dashboards: grafana
+        datasource:
+          name: Tempo
+          type: tempo
+          access: proxy
+          url: {{ $tempoUrl }}
+          jsonData:
+            tracesToLogsV2:
+              datasourceUid: ""
+              tags:
+              - key: service.name
+                value: service_name
+            serviceMap:
+              datasourceUid: ""
+            nodeGraph:
+              enabled: true
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect grafana-operator from deletion until grafana-instance is deleted
+# ==============================================================================
+# Grafana CRDs must exist for cleanup of the Grafana CR.
+{{- if and $state.observed.grafanaOperator.ready $state.observed.grafanaInstance.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-grafana-instance-before-grafana-operator
+  annotations:
+    {{ setResourceNameAnnotation "usage-grafop-instance" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: GrafanaOperator
+    resourceRef:
+      name: {{ $state.name }}-{{ $grafOp.name }}
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-grafana-instance
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect grafana-instance from deletion until datasource-prometheus is deleted
+# ==============================================================================
+{{- if and $state.observed.grafanaInstance.ready $state.observed.datasourcePrometheus.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-datasource-prometheus-before-grafana-instance
+  annotations:
+    {{ setResourceNameAnnotation "usage-instance-dsprom" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-grafana-instance
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-prometheus
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect grafana-instance from deletion until datasource-loki is deleted
+# ==============================================================================
+{{- if and $state.observed.grafanaInstance.ready $state.observed.datasourceLoki.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-datasource-loki-before-grafana-instance
+  annotations:
+    {{ setResourceNameAnnotation "usage-instance-dsloki" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-grafana-instance
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-loki
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect grafana-instance from deletion until datasource-tempo is deleted
+# ==============================================================================
+{{- if and $state.observed.grafanaInstance.ready $state.observed.datasourceTempo.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-datasource-tempo-before-grafana-instance
+  annotations:
+    {{ setResourceNameAnnotation "usage-instance-dstempo" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-grafana-instance
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-tempo
+{{- end }}

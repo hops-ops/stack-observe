@@ -1,0 +1,34 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/GrafanaOperator XR
+#
+# grafana-operator is a dependent resource - it depends on prom-stack's Grafana.
+# The Usage protecting kube-prometheus-stack is co-located in 200.
+#
+
+{{- $grafOp := $state.grafanaOperator }}
+
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: GrafanaOperator
+metadata:
+  name: {{ $state.name }}-{{ $grafOp.name }}
+  annotations:
+    {{ setResourceNameAnnotation "grafana-operator" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.providerConfigRef.name }}
+    kind: {{ $state.providerConfigRef.kind }}
+  namespace: {{ $grafOp.namespace }}
+  name: {{ $grafOp.name }}
+  {{- if $grafOp.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $grafOp.overrideAllValues | nindent 4 }}
+  {{- else if $grafOp.values }}
+  values:
+    {{- toYaml $grafOp.values | nindent 4 }}
+  {{- end }}

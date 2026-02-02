@@ -1,0 +1,12 @@
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: Tempo
+metadata:
+  name: observe-tempo
+  annotations:
+    crossplane.io/composition-resource-name: tempo
+status:
+  conditions:
+  - type: Ready
+    status: "True"
+  - type: Synced
+    status: "True"
