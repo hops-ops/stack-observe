@@ -18,8 +18,8 @@ spec:
   clusterName: {{ $state.clusterName }}
   labels: {{ $state.labels | toJson }}
   providerConfigRef:
-    name: {{ $state.providerConfigRef.name }}
-    kind: {{ $state.providerConfigRef.kind }}
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
   namespace: {{ $loki.namespace }}
   name: {{ $loki.name }}
   {{- if $loki.overrideAllValues }}

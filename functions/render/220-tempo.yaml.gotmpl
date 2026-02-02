@@ -18,8 +18,8 @@ spec:
   clusterName: {{ $state.clusterName }}
   labels: {{ $state.labels | toJson }}
   providerConfigRef:
-    name: {{ $state.providerConfigRef.name }}
-    kind: {{ $state.providerConfigRef.kind }}
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
   namespace: {{ $tempo.namespace }}
   name: {{ $tempo.name }}
   {{- if $tempo.overrideAllValues }}

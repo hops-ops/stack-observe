@@ -21,8 +21,8 @@ spec:
   clusterName: {{ $state.clusterName }}
   labels: {{ $state.labels | toJson }}
   providerConfigRef:
-    name: {{ $state.providerConfigRef.name }}
-    kind: {{ $state.providerConfigRef.kind }}
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
   namespace: {{ $grafOp.namespace }}
   name: {{ $grafOp.name }}
   {{- if $grafOp.overrideAllValues }}

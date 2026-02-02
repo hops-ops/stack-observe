@@ -101,7 +101,7 @@ _items = [
                             "hops.ops.com.ai/e2etest" = "true"
                             "hops.ops.com.ai/test-run" = _now
                         }
-                        providerConfigRef = {
+                        helmProviderConfigRef = {
                             name = "default"
                             kind = "ProviderConfig"
                         }

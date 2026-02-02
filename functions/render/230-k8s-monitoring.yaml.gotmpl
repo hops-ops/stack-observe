@@ -22,8 +22,8 @@ spec:
   clusterName: {{ $state.clusterName }}
   labels: {{ $state.labels | toJson }}
   providerConfigRef:
-    name: {{ $state.providerConfigRef.name }}
-    kind: {{ $state.providerConfigRef.kind }}
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
   namespace: {{ $k8sMon.namespace }}
   name: {{ $k8sMon.name }}
   {{- if $k8sMon.overrideAllValues }}

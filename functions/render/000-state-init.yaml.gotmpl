@@ -22,11 +22,11 @@
 }}
 {{- $labels := merge $defaultLabels ($spec.labels | default dict) }}
 
-# Provider config (defaults to clusterName)
-{{- $providerConfigRef := $spec.providerConfigRef | default dict }}
-{{- $providerConfigRef = dict
-  "name" ($providerConfigRef.name | default $clusterName)
-  "kind" ($providerConfigRef.kind | default "ProviderConfig")
+# Helm provider config (defaults to clusterName)
+{{- $helmProviderConfigRef := $spec.helmProviderConfigRef | default dict }}
+{{- $helmProviderConfigRef = dict
+  "name" ($helmProviderConfigRef.name | default $clusterName)
+  "kind" ($helmProviderConfigRef.kind | default "ProviderConfig")
 }}
 
 # Kubernetes provider config (defaults to clusterName)
@@ -58,7 +58,7 @@
   "namespace" $namespace
   "managementPolicies" $managementPolicies
   "labels" $labels
-  "providerConfigRef" $providerConfigRef
+  "helmProviderConfigRef" $helmProviderConfigRef
   "kubernetesProviderConfigRef" $k8sProviderConfigRef
   "kubePrometheusStack" (dict
     "name" ($kps.name | default "kube-prometheus-stack")

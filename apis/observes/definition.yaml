@@ -22,7 +22,7 @@ spec:
             type: object
             properties:
               clusterName:
-                description: Name of the target cluster. Used as default for providerConfigRef.name and resource naming.
+                description: Name of the target cluster. Used as default for helmProviderConfigRef.name and resource naming.
                 type: string
               managementPolicies:
                 description: Management policies for all composed resources. Defaults to ["*"].
@@ -37,7 +37,7 @@ spec:
                 additionalProperties:
                   type: string
                 x-kubernetes-preserve-unknown-fields: true
-              providerConfigRef:
+              helmProviderConfigRef:
                 description: Reference to the Helm ProviderConfig. Defaults to clusterName.
                 type: object
                 properties:
