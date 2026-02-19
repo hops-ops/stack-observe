@@ -2,7 +2,7 @@ name: promote
 on:
   push:
     tags:
-    - v*.*.*
+      - v*.*.*
 
 permissions:
   packages: write
@@ -11,9 +11,8 @@ permissions:
   pull-requests: write
 
 jobs:
-
   publish:
-    uses: unbounded-tech/workflows-crossplane/.github/workflows/publish.yaml@v2.13.0
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/publish.yaml@v2.14.2
     secrets: inherit
     with:
       tag: ${{ github.ref_name }}

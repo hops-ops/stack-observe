@@ -5,14 +5,14 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/on-push-main.yaml'
-      - '.github/workflows/on-version-tagged.yaml'
-      - '.gitops/**'
-      - 'apis/**'
-      - 'examples/**'
-      - 'functions/**'
-      - 'tests/**'
-      - 'upbound.yaml'
+      - ".github/workflows/on-push-main.yaml"
+      - ".github/workflows/on-version-tagged.yaml"
+      - ".gitops/**"
+      - "apis/**"
+      - "examples/**"
+      - "functions/**"
+      - "tests/**"
+      - "upbound.yaml"
 
 permissions:
   packages: write
@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   validate:
-    uses: unbounded-tech/workflows-crossplane/.github/workflows/validate.yaml@v2.13.0
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/validate.yaml@v2.14.2
     with:
       examples: |
         [
@@ -37,10 +37,10 @@ jobs:
       error_on_missing_schemas: true
 
   test:
-    uses: unbounded-tech/workflows-crossplane/.github/workflows/test.yaml@v2.13.0
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/test.yaml@v2.14.2
 
   e2e:
-    uses: unbounded-tech/workflows-crossplane/.github/workflows/e2e.yaml@v2.13.0
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/e2e.yaml@v2.14.2
 
   version-and-tag:
     name: Version and Tag
@@ -53,11 +53,3 @@ jobs:
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
     with:
       useDeployKey: true
-      yqPatches: |
-        patches:
-          - filePath: .gitops/deploy/values.yaml
-            selector: .version
-            valuePrefix: "v"
-          - filePath: .gitops/deploy/Chart.yaml
-            selector: .version
-            valuePrefix: ""

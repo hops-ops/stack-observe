@@ -1,4 +1,0 @@
-version: latest
-# Default: let Crossplane resolve dependencies (downloads embedded functions automatically)
-# Set to true for platform deployments where functions are managed separately
-skipDependencyResolution: false
