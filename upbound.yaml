@@ -11,7 +11,7 @@ spec:
     - apiVersion: pkg.crossplane.io/v1
       kind: Configuration
       package: ghcr.io/hops-ops/helm-kube-prometheus-stack
-      version: ">=v0.1.0"
+      version: ">=v0.6.0"
     - apiVersion: pkg.crossplane.io/v1
       kind: Configuration
       package: ghcr.io/hops-ops/helm-loki
