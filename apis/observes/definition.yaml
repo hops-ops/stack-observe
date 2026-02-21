@@ -77,11 +77,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with defaults.
+                    description: Helm values merged with Observe cross-component defaults (Grafana datasources wired to Loki and Tempo).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults.
+                    description: Helm values that replace Observe cross-component defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               loki:
@@ -95,11 +95,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with defaults.
+                    description: Helm values passed through from Observe to the base Loki XR.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults.
+                    description: Helm values that replace all defaults at the base Loki XR.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               tempo:
@@ -113,15 +113,15 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with defaults.
+                    description: Helm values merged with Observe cross-component defaults (metrics generator remote-write wired to KubePrometheusStack).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults.
+                    description: Helm values that replace Observe cross-component defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               k8sMonitoring:
-                description: Configuration for the k8s-monitoring component. Stack defaults include nodeExporter.enabled=false.
+                description: Configuration for the k8s-monitoring component. Observe cross-component defaults wire destinations to Prometheus, Loki, and Tempo.
                 type: object
                 properties:
                   name:
@@ -131,11 +131,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with stack defaults (nodeExporter.enabled=false).
+                    description: Helm values merged with Observe cross-component defaults (destinations wired to Prometheus, Loki, and Tempo).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults including stack defaults.
+                    description: Helm values that replace Observe cross-component defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               grafanaOperator:
@@ -149,11 +149,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with defaults.
+                    description: Helm values passed through from Observe to the base GrafanaOperator XR.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults.
+                    description: Helm values that replace all defaults at the base GrafanaOperator XR.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
             required:

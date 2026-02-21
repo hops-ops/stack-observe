@@ -2,8 +2,13 @@
 #
 # Compose the base helm.hops.ops.com.ai/Tempo XR
 #
+# Cross-component defaults only:
+# - Metrics generator remote-write wired to KubePrometheusStack.
+# Other chart defaults live in the base Tempo XR.
+#
 
 {{- $tempo := $state.tempo }}
+{{- $kps := $state.kubePrometheusStack }}
 
 ---
 apiVersion: helm.hops.ops.com.ai/v1alpha1
@@ -25,9 +30,18 @@ spec:
   {{- if $tempo.overrideAllValues }}
   overrideAllValues:
     {{- toYaml $tempo.overrideAllValues | nindent 4 }}
-  {{- else if $tempo.values }}
+  {{- else }}
+  {{- $tempoDefaults := dict
+    "tempo" (dict
+      "metricsGenerator" (dict
+        "enabled" true
+        "remoteWriteUrl" (printf "http://%s-prometheus.%s:9090/api/v1/write" $kps.name $kps.namespace)
+      )
+    )
+  }}
+  {{- $mergedValues := mergeOverwrite $tempoDefaults ($tempo.values | default dict) }}
   values:
-    {{- toYaml $tempo.values | nindent 4 }}
+    {{- toYaml $mergedValues | nindent 4 }}
   {{- end }}
 
 # ==============================================================================

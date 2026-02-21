@@ -2,8 +2,14 @@
 #
 # Compose the base helm.hops.ops.com.ai/KubePrometheusStack XR
 #
+# Cross-component defaults only:
+# - Grafana datasources wired to Loki and Tempo components in this Observe stack.
+# Other chart defaults live in the base KubePrometheusStack XR.
+#
 
 {{- $kps := $state.kubePrometheusStack }}
+{{- $loki := $state.loki }}
+{{- $tempo := $state.tempo }}
 
 ---
 apiVersion: helm.hops.ops.com.ai/v1alpha1
@@ -25,9 +31,43 @@ spec:
   {{- if $kps.overrideAllValues }}
   overrideAllValues:
     {{- toYaml $kps.overrideAllValues | nindent 4 }}
-  {{- else if $kps.values }}
+  {{- else }}
+  {{- $lokiDatasource := dict
+    "name" "Loki" "type" "loki" "uid" "loki" "access" "proxy"
+    "url" (printf "http://%s.%s:3100" $loki.name $loki.namespace)
+    "jsonData" (dict
+      "maxLines" 1000
+      "derivedFields" (list (dict
+        "name" "TraceID"
+        "matcherRegex" "\"traceId\":\"([a-f0-9]+)\""
+        "url" "$${__value.raw}"
+        "datasourceUid" "tempo")))
+  }}
+  {{- $tempoDatasource := dict
+    "name" "Tempo" "type" "tempo" "uid" "tempo" "access" "proxy"
+    "url" (printf "http://%s.%s:3100" $tempo.name $tempo.namespace)
+    "jsonData" (dict
+      "httpMethod" "GET"
+      "tracesToLogsV2" (dict
+        "datasourceUid" "loki"
+        "spanStartTimeShift" "-1h"
+        "spanEndTimeShift" "1h"
+        "filterByTraceID" true
+        "filterBySpanID" false)
+      "tracesToMetrics" (dict
+        "datasourceUid" "prometheus"
+        "spanStartTimeShift" "-1h"
+        "spanEndTimeShift" "1h")
+      "serviceMap" (dict "datasourceUid" "prometheus")
+      "nodeGraph" (dict "enabled" true)
+      "lokiSearch" (dict "datasourceUid" "loki"))
+  }}
+  {{- $kpsDefaults := dict "grafana" (dict
+    "additionalDataSources" (list $lokiDatasource $tempoDatasource))
+  }}
+  {{- $mergedValues := mergeOverwrite $kpsDefaults ($kps.values | default dict) }}
   values:
-    {{- toYaml $kps.values | nindent 4 }}
+    {{- toYaml $mergedValues | nindent 4 }}
   {{- end }}
 
 # ==============================================================================

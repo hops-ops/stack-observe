@@ -37,17 +37,13 @@
 }}
 
 # ==============================================================================
-# Per-component defaults
+# Per-component configuration
 # ==============================================================================
 {{- $kps := $spec.kubePrometheusStack | default dict }}
 {{- $loki := $spec.loki | default dict }}
 {{- $tempo := $spec.tempo | default dict }}
 {{- $k8sMon := $spec.k8sMonitoring | default dict }}
 {{- $grafOp := $spec.grafanaOperator | default dict }}
-
-# k8s-monitoring stack defaults: nodeExporter disabled (prom-stack handles it)
-{{- $k8sMonStackDefaults := dict "nodeExporter" (dict "enabled" false) }}
-{{- $k8sMonValues := merge ($k8sMon.values | default dict) $k8sMonStackDefaults }}
 
 # ==============================================================================
 # Initialize $state
@@ -81,7 +77,7 @@
   "k8sMonitoring" (dict
     "name" ($k8sMon.name | default "k8s-monitoring")
     "namespace" ($k8sMon.namespace | default $namespace)
-    "values" $k8sMonValues
+    "values" ($k8sMon.values | default dict)
     "overrideAllValues" ($k8sMon.overrideAllValues | default dict)
   )
   "grafanaOperator" (dict

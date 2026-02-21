@@ -6,8 +6,15 @@
 # Usages protecting those resources from premature deletion are co-located
 # with those resources (200, 210, 220).
 #
+# Cross-component defaults only:
+# destinations are wired to Prometheus, Loki, and Tempo.
+# Other chart defaults live in the base K8sMonitoring XR.
+#
 
 {{- $k8sMon := $state.k8sMonitoring }}
+{{- $kps := $state.kubePrometheusStack }}
+{{- $loki := $state.loki }}
+{{- $tempo := $state.tempo }}
 
 ---
 apiVersion: helm.hops.ops.com.ai/v1alpha1
@@ -29,7 +36,18 @@ spec:
   {{- if $k8sMon.overrideAllValues }}
   overrideAllValues:
     {{- toYaml $k8sMon.overrideAllValues | nindent 4 }}
-  {{- else if $k8sMon.values }}
+  {{- else }}
+  {{- $k8sMonDefaults := dict
+    "destinations" (list
+      (dict "name" "prometheus" "type" "prometheus"
+        "url" (printf "http://%s-prometheus.%s:9090/api/v1/write" $kps.name $kps.namespace))
+      (dict "name" "loki" "type" "loki"
+        "url" (printf "http://%s.%s:3100/loki/api/v1/push" $loki.name $loki.namespace))
+      (dict "name" "tempo" "type" "otlp" "protocol" "grpc"
+        "url" (printf "http://%s.%s:4317" $tempo.name $tempo.namespace))
+    )
+  }}
+  {{- $mergedValues := mergeOverwrite $k8sMonDefaults ($k8sMon.values | default dict) }}
   values:
-    {{- toYaml $k8sMon.values | nindent 4 }}
+    {{- toYaml $mergedValues | nindent 4 }}
   {{- end }}

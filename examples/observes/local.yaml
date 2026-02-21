@@ -1,0 +1,15 @@
+apiVersion: stacks.hops.ops.com.ai/v1alpha1
+kind: Observe
+metadata:
+  name: observe
+  namespace: default
+spec:
+  clusterName: local
+  helmProviderConfigRef:
+    name: default
+  kubernetesProviderConfigRef:
+    name: default
+  kubePrometheusStack:
+    values:
+      grafana:
+        adminPassword: local
