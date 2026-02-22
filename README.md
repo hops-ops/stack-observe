@@ -171,7 +171,7 @@ These integrations happen automatically:
 | k8s-monitoring | Prometheus | Metrics push via `/api/v1/write` |
 | k8s-monitoring | Loki | Logs push via gateway `/loki/api/v1/push` |
 | k8s-monitoring | Tempo | Traces push via OTLP gRPC `:4317` |
-| OpenCost | Prometheus | Cost queries via `/api/v1/query` |
+| OpenCost | Prometheus | Cost queries via `/api/v1/query` (OpenCost appends this path) |
 
 ## Deletion Ordering
 

@@ -54,12 +54,12 @@ spec:
           "metricsSource" "prometheus"
           "opencost" (dict
             "exporter" (dict "defaultClusterId" $state.clusterName)
-            "prometheus" (dict
-              "external" (dict
-                "url" (printf "http://%s-prometheus.%s:9090/api/v1/query" $kps.name $kps.namespace)
+              "prometheus" (dict
+                "external" (dict
+                  "url" (printf "http://%s-prometheus.%s:9090" $kps.name $kps.namespace)
+                )
               )
             )
-          )
         )
       )
       "alloy-metrics" (dict "enabled" true)

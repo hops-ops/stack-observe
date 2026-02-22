@@ -1,0 +1,72 @@
+# code: language=yaml
+#
+# GrafanaDashboard CRs loaded from grafana.com by ID.
+# Gated on: grafana-operator + grafana-instance must be ready.
+#
+
+{{- $kps := $state.kubePrometheusStack }}
+{{- $k8sPCR := $state.kubernetesProviderConfigRef }}
+
+{{- if and $state.observed.grafanaOperator.ready $state.observed.grafanaInstance.ready }}
+
+# ==============================================================================
+# Dashboard: OpenCost Overview (grafana.com ID 22208)
+# ==============================================================================
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-dashboard-opencost-overview
+  annotations:
+    {{ setResourceNameAnnotation "dashboard-opencost-overview" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: GrafanaDashboard
+      metadata:
+        name: {{ $state.name }}-opencost-overview
+        namespace: {{ $kps.namespace }}
+      spec:
+        instanceSelector:
+          matchLabels:
+            dashboards: grafana
+        grafanaCom:
+          id: 22208
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+
+# ==============================================================================
+# Dashboard: OpenCost Namespace (grafana.com ID 22252)
+# ==============================================================================
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-dashboard-opencost-namespace
+  annotations:
+    {{ setResourceNameAnnotation "dashboard-opencost-namespace" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: GrafanaDashboard
+      metadata:
+        name: {{ $state.name }}-opencost-namespace
+        namespace: {{ $kps.namespace }}
+      spec:
+        instanceSelector:
+          matchLabels:
+            dashboards: grafana
+        grafanaCom:
+          id: 22252
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+
+{{- end }}

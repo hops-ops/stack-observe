@@ -168,6 +168,8 @@ _items = [
                                 }
                             }
                         ]
+                        grafana.sidecar.datasources.enabled = False
+                        grafana.sidecar.datasources.defaultDatasourceEnabled = False
                     }
                 }
             ]
@@ -246,6 +248,7 @@ _items = [
                                 protocol = "grpc"
                             }
                         ]
+                        clusterMetrics.opencost.opencost.prometheus.external.url = "http://kube-prometheus-stack-prometheus.monitoring:9090"
                     }
                 }
             ]
@@ -464,6 +467,7 @@ _items = [
                                 protocol = "grpc"
                             }
                         ]
+                        clusterMetrics.opencost.opencost.prometheus.external.url = "http://kube-prometheus-stack-prometheus.monitoring:9090"
                         nodeExporter.enabled = False
                     }
                 }

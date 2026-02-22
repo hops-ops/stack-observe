@@ -43,7 +43,16 @@ spec:
         )
       )
       "alertmanager" (dict "enabled" true)
-      "grafana" (dict "enabled" true)
+      "grafana" (dict
+        "enabled" true
+        "sidecar" (dict
+          "datasources" (dict
+            "enabled" false
+            "defaultDatasourceEnabled" false
+            "alertmanager" (dict "enabled" false)
+          )
+        )
+      )
       "nodeExporter" (dict "enabled" false)
     }}
     {{- /* Cross-component defaults: wire Grafana datasources to Loki & Tempo */}}
