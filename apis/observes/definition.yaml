@@ -14,7 +14,7 @@ spec:
     served: true
     schema:
       openAPIV3Schema:
-        description: Observe deploys a complete observability stack composing kube-prometheus-stack, Loki, Tempo, k8s-monitoring, and Grafana Operator.
+        description: Observe deploys a complete observability stack with kube-prometheus-stack, Loki, Tempo, k8s-monitoring, and Grafana Operator as Helm releases.
         type: object
         properties:
           spec:
@@ -77,11 +77,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with Observe cross-component defaults (Grafana datasources wired to Loki and Tempo).
+                    description: Helm values merged with chart and cross-component defaults (Grafana datasources wired to Loki and Tempo).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace Observe cross-component defaults for this component.
+                    description: Helm values that replace all defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               loki:
@@ -95,11 +95,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values passed through from Observe to the base Loki XR.
+                    description: Helm values merged with chart defaults (SingleBinary mode, filesystem storage).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults at the base Loki XR.
+                    description: Helm values that replace all defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               tempo:
@@ -113,15 +113,15 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with Observe cross-component defaults (metrics generator remote-write wired to KubePrometheusStack).
+                    description: Helm values merged with chart and cross-component defaults (metrics generator remote-write wired to KubePrometheusStack).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace Observe cross-component defaults for this component.
+                    description: Helm values that replace all defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               k8sMonitoring:
-                description: Configuration for the k8s-monitoring component. Observe cross-component defaults wire destinations to Prometheus, Loki, and Tempo.
+                description: Configuration for the k8s-monitoring component. Destinations are wired to Prometheus, Loki, and Tempo.
                 type: object
                 properties:
                   name:
@@ -131,11 +131,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values merged with Observe cross-component defaults (destinations wired to Prometheus, Loki, and Tempo).
+                    description: Helm values merged with chart and cross-component defaults (destinations wired to Prometheus, Loki, and Tempo).
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace Observe cross-component defaults for this component.
+                    description: Helm values that replace all defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
               grafanaOperator:
@@ -149,11 +149,11 @@ spec:
                     description: Namespace override for this component.
                     type: string
                   values:
-                    description: Helm values passed through from Observe to the base GrafanaOperator XR.
+                    description: Helm values passed to the Grafana Operator chart.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   overrideAllValues:
-                    description: Helm values that replace all defaults at the base GrafanaOperator XR.
+                    description: Helm values that replace all defaults for this component.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
             required:

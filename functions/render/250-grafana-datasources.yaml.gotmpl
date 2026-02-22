@@ -19,7 +19,7 @@
 {{- $grafanaServiceUrl := printf "http://%s-grafana.%s.svc:80" $kps.name $kps.namespace }}
 {{- $prometheusUrl := printf "http://%s-prometheus.%s.svc:9090" $kps.name $kps.namespace }}
 {{- $lokiUrl := printf "http://%s-gateway.%s.svc:80" $loki.name $loki.namespace }}
-{{- $tempoUrl := printf "http://%s.%s.svc:3100" $tempo.name $tempo.namespace }}
+{{- $tempoUrl := printf "http://%s.%s.svc:3200" $tempo.name $tempo.namespace }}
 
 # ==============================================================================
 # Grafana CR (external mode) - points operator at kube-prometheus-stack's Grafana
@@ -212,10 +212,10 @@ metadata:
 spec:
   replayDeletion: true
   of:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: GrafanaOperator
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $grafOp.name }}
+      name: {{ $grafOp.name }}
   by:
     apiVersion: kubernetes.m.crossplane.io/v1alpha1
     kind: Object

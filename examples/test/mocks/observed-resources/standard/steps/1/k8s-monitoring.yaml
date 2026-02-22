@@ -1,7 +1,7 @@
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: K8sMonitoring
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: observe-k8s-monitoring
+  name: k8s-monitoring
   annotations:
     crossplane.io/composition-resource-name: k8s-monitoring
 status:

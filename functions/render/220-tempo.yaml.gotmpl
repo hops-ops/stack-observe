@@ -1,48 +1,72 @@
 # code: language=yaml
 #
-# Compose the base helm.hops.ops.com.ai/Tempo XR
+# Helm Release: tempo
 #
-# Cross-component defaults only:
+# Chart defaults from the base XR plus cross-component defaults:
 # - Metrics generator remote-write wired to KubePrometheusStack.
-# Other chart defaults live in the base Tempo XR.
 #
 
 {{- $tempo := $state.tempo }}
 {{- $kps := $state.kubePrometheusStack }}
 
 ---
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: Tempo
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: {{ $state.name }}-{{ $tempo.name }}
+  name: {{ $tempo.name }}
   annotations:
     {{ setResourceNameAnnotation "tempo" }}
   labels: {{ $state.labels | toJson }}
 spec:
   managementPolicies: {{ $state.managementPolicies | toJson }}
-  clusterName: {{ $state.clusterName }}
-  labels: {{ $state.labels | toJson }}
+  forProvider:
+    chart:
+      name: tempo
+      repository: https://grafana.github.io/helm-charts
+      version: 1.24.4
+    namespace: {{ $tempo.namespace }}
+    {{- if $tempo.overrideAllValues }}
+    values:
+      {{- toYaml $tempo.overrideAllValues | nindent 6 }}
+    {{- else }}
+    {{- /* Chart defaults */}}
+    {{- $chartDefaults := dict
+      "tempo" (dict
+        "receivers" (dict
+          "otlp" (dict "protocols" (dict
+            "grpc" (dict "endpoint" "0.0.0.0:4317")
+            "http" (dict "endpoint" "0.0.0.0:4318")
+          ))
+          "jaeger" (dict "protocols" (dict
+            "grpc" (dict "endpoint" "0.0.0.0:14250")
+            "thrift_binary" (dict "endpoint" "0.0.0.0:6832")
+            "thrift_compact" (dict "endpoint" "0.0.0.0:6831")
+            "thrift_http" (dict "endpoint" "0.0.0.0:14268")
+          ))
+          "zipkin" (dict "endpoint" "0.0.0.0:9411")
+        )
+        "searchEnabled" true
+      )
+      "service" (dict "type" "ClusterIP")
+    }}
+    {{- /* Cross-component default: metrics generator remote-write to Prometheus */}}
+    {{- $crossDefaults := dict
+      "tempo" (dict
+        "metricsGenerator" (dict
+          "enabled" true
+          "remoteWriteUrl" (printf "http://%s-prometheus.%s:9090/api/v1/write" $kps.name $kps.namespace)
+        )
+      )
+    }}
+    {{- $allDefaults := mergeOverwrite $chartDefaults $crossDefaults }}
+    {{- $mergedValues := mergeOverwrite $allDefaults ($tempo.values | default dict) }}
+    values:
+      {{- toYaml $mergedValues | nindent 6 }}
+    {{- end }}
+  rollbackLimit: 3
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
     kind: {{ $state.helmProviderConfigRef.kind }}
-  namespace: {{ $tempo.namespace }}
-  name: {{ $tempo.name }}
-  {{- if $tempo.overrideAllValues }}
-  overrideAllValues:
-    {{- toYaml $tempo.overrideAllValues | nindent 4 }}
-  {{- else }}
-  {{- $tempoDefaults := dict
-    "tempo" (dict
-      "metricsGenerator" (dict
-        "enabled" true
-        "remoteWriteUrl" (printf "http://%s-prometheus.%s:9090/api/v1/write" $kps.name $kps.namespace)
-      )
-    )
-  }}
-  {{- $mergedValues := mergeOverwrite $tempoDefaults ($tempo.values | default dict) }}
-  values:
-    {{- toYaml $mergedValues | nindent 4 }}
-  {{- end }}
 
 # ==============================================================================
 # Usage: Protect Tempo from deletion until k8s-monitoring is deleted
@@ -61,13 +85,13 @@ metadata:
 spec:
   replayDeletion: true
   of:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: Tempo
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $tempo.name }}
+      name: {{ $tempo.name }}
   by:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: K8sMonitoring
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $state.k8sMonitoring.name }}
+      name: {{ $state.k8sMonitoring.name }}
 {{- end }}

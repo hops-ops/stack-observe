@@ -1,14 +1,14 @@
 # code: language=yaml
 #
-# Compose the base helm.hops.ops.com.ai/K8sMonitoring XR
+# Helm Release: k8s-monitoring
 #
 # k8s-monitoring is the dependent resource - it depends on prom-stack, loki, and tempo.
 # Usages protecting those resources from premature deletion are co-located
 # with those resources (200, 210, 220).
 #
-# Cross-component defaults only:
-# destinations are wired to Prometheus, Loki, and Tempo.
-# Other chart defaults live in the base K8sMonitoring XR.
+# Chart defaults from the base XR plus cross-component defaults:
+# - destinations wired to Prometheus, Loki, and Tempo.
+# - cluster.name set to clusterName.
 #
 
 {{- $k8sMon := $state.k8sMonitoring }}
@@ -17,37 +17,75 @@
 {{- $tempo := $state.tempo }}
 
 ---
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: K8sMonitoring
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: {{ $state.name }}-{{ $k8sMon.name }}
+  name: {{ $k8sMon.name }}
   annotations:
     {{ setResourceNameAnnotation "k8s-monitoring" }}
   labels: {{ $state.labels | toJson }}
 spec:
   managementPolicies: {{ $state.managementPolicies | toJson }}
-  clusterName: {{ $state.clusterName }}
-  labels: {{ $state.labels | toJson }}
+  forProvider:
+    chart:
+      name: k8s-monitoring
+      repository: https://grafana.github.io/helm-charts
+      version: 3.8.0
+    namespace: {{ $k8sMon.namespace }}
+    {{- if $k8sMon.overrideAllValues }}
+    values:
+      {{- toYaml $k8sMon.overrideAllValues | nindent 6 }}
+    {{- else }}
+    {{- /* Chart defaults + cross-component destinations */}}
+    {{- $defaults := dict
+      "cluster" (dict "name" $state.clusterName)
+      "destinations" (list
+        (dict "name" "prometheus" "type" "prometheus"
+          "url" (printf "http://%s-prometheus.%s:9090/api/v1/write" $kps.name $kps.namespace))
+        (dict "name" "loki" "type" "loki"
+          "url" (printf "http://%s-gateway.%s:80/loki/api/v1/push" $loki.name $loki.namespace))
+        (dict "name" "tempo" "type" "otlp" "protocol" "grpc"
+          "url" (printf "http://%s.%s:4317" $tempo.name $tempo.namespace))
+      )
+      "clusterMetrics" (dict
+        "enabled" true
+        "opencost" (dict
+          "enabled" true
+          "metricsSource" "prometheus"
+          "opencost" (dict
+            "exporter" (dict "defaultClusterId" $state.clusterName)
+            "prometheus" (dict
+              "external" (dict
+                "url" (printf "http://%s-prometheus.%s:9090/api/v1/query" $kps.name $kps.namespace)
+              )
+            )
+          )
+        )
+      )
+      "alloy-metrics" (dict "enabled" true)
+      "clusterEvents" (dict "enabled" true)
+      "nodeLogs" (dict "enabled" true)
+      "podLogs" (dict "enabled" true)
+      "applicationObservability" (dict
+        "enabled" true
+        "receivers" (dict
+          "otlp" (dict
+            "grpc" (dict "enabled" true "port" 4317)
+            "http" (dict "enabled" true "port" 4318)
+          )
+        )
+      )
+      "prometheusOperatorObjects" (dict "enabled" true)
+      "alloy-logs" (dict "enabled" true)
+      "alloy-singleton" (dict "enabled" true)
+      "alloy-receiver" (dict "enabled" true)
+      "nodeExporter" (dict "enabled" false)
+    }}
+    {{- $mergedValues := mergeOverwrite $defaults ($k8sMon.values | default dict) }}
+    values:
+      {{- toYaml $mergedValues | nindent 6 }}
+    {{- end }}
+  rollbackLimit: 3
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
     kind: {{ $state.helmProviderConfigRef.kind }}
-  namespace: {{ $k8sMon.namespace }}
-  name: {{ $k8sMon.name }}
-  {{- if $k8sMon.overrideAllValues }}
-  overrideAllValues:
-    {{- toYaml $k8sMon.overrideAllValues | nindent 4 }}
-  {{- else }}
-  {{- $k8sMonDefaults := dict
-    "destinations" (list
-      (dict "name" "prometheus" "type" "prometheus"
-        "url" (printf "http://%s-prometheus.%s:9090/api/v1/write" $kps.name $kps.namespace))
-      (dict "name" "loki" "type" "loki"
-        "url" (printf "http://%s.%s:3100/loki/api/v1/push" $loki.name $loki.namespace))
-      (dict "name" "tempo" "type" "otlp" "protocol" "grpc"
-        "url" (printf "http://%s.%s:4317" $tempo.name $tempo.namespace))
-    )
-  }}
-  {{- $mergedValues := mergeOverwrite $k8sMonDefaults ($k8sMon.values | default dict) }}
-  values:
-    {{- toYaml $mergedValues | nindent 4 }}
-  {{- end }}

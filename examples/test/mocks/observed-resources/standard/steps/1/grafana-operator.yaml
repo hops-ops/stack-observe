@@ -1,7 +1,7 @@
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: GrafanaOperator
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: observe-grafana-operator
+  name: grafana-operator
   annotations:
     crossplane.io/composition-resource-name: grafana-operator
 status:

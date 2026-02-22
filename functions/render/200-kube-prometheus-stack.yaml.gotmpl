@@ -1,10 +1,9 @@
 # code: language=yaml
 #
-# Compose the base helm.hops.ops.com.ai/KubePrometheusStack XR
+# Helm Release: kube-prometheus-stack
 #
-# Cross-component defaults only:
+# Chart defaults from the base XR plus cross-component defaults:
 # - Grafana datasources wired to Loki and Tempo components in this Observe stack.
-# Other chart defaults live in the base KubePrometheusStack XR.
 #
 
 {{- $kps := $state.kubePrometheusStack }}
@@ -12,63 +11,84 @@
 {{- $tempo := $state.tempo }}
 
 ---
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: KubePrometheusStack
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: {{ $state.name }}-{{ $kps.name }}
+  name: {{ $kps.name }}
   annotations:
     {{ setResourceNameAnnotation "kube-prometheus-stack" }}
   labels: {{ $state.labels | toJson }}
 spec:
   managementPolicies: {{ $state.managementPolicies | toJson }}
-  clusterName: {{ $state.clusterName }}
-  labels: {{ $state.labels | toJson }}
+  forProvider:
+    chart:
+      name: kube-prometheus-stack
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 82.2.0
+    namespace: {{ $kps.namespace }}
+    {{- if $kps.overrideAllValues }}
+    values:
+      {{- toYaml $kps.overrideAllValues | nindent 6 }}
+    {{- else }}
+    {{- /* Chart defaults */}}
+    {{- $chartDefaults := dict
+      "prometheusOperator" (dict "enabled" true)
+      "prometheus" (dict
+        "enabled" true
+        "prometheusSpec" (dict
+          "enableRemoteWriteReceiver" true
+          "serviceMonitorSelectorNilUsesHelmValues" false
+          "podMonitorSelectorNilUsesHelmValues" false
+          "ruleSelectorNilUsesHelmValues" false
+        )
+      )
+      "alertmanager" (dict "enabled" true)
+      "grafana" (dict "enabled" true)
+      "nodeExporter" (dict "enabled" false)
+    }}
+    {{- /* Cross-component defaults: wire Grafana datasources to Loki & Tempo */}}
+    {{- $lokiDatasource := dict
+      "name" "Loki" "type" "loki" "uid" "loki" "access" "proxy"
+      "url" (printf "http://%s-gateway.%s:80" $loki.name $loki.namespace)
+      "jsonData" (dict
+        "maxLines" 1000
+        "derivedFields" (list (dict
+          "name" "TraceID"
+          "matcherRegex" "\"traceId\":\"([a-f0-9]+)\""
+          "url" "$${__value.raw}"
+          "datasourceUid" "tempo")))
+    }}
+    {{- $tempoDatasource := dict
+      "name" "Tempo" "type" "tempo" "uid" "tempo" "access" "proxy"
+      "url" (printf "http://%s.%s:3200" $tempo.name $tempo.namespace)
+      "jsonData" (dict
+        "httpMethod" "GET"
+        "tracesToLogsV2" (dict
+          "datasourceUid" "loki"
+          "spanStartTimeShift" "-1h"
+          "spanEndTimeShift" "1h"
+          "filterByTraceID" true
+          "filterBySpanID" false)
+        "tracesToMetrics" (dict
+          "datasourceUid" "prometheus"
+          "spanStartTimeShift" "-1h"
+          "spanEndTimeShift" "1h")
+        "serviceMap" (dict "datasourceUid" "prometheus")
+        "nodeGraph" (dict "enabled" true)
+        "lokiSearch" (dict "datasourceUid" "loki"))
+    }}
+    {{- $crossDefaults := dict "grafana" (dict
+      "additionalDataSources" (list $lokiDatasource $tempoDatasource))
+    }}
+    {{- $allDefaults := mergeOverwrite $chartDefaults $crossDefaults }}
+    {{- $mergedValues := mergeOverwrite $allDefaults ($kps.values | default dict) }}
+    values:
+      {{- toYaml $mergedValues | nindent 6 }}
+    {{- end }}
+  rollbackLimit: 3
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
     kind: {{ $state.helmProviderConfigRef.kind }}
-  namespace: {{ $kps.namespace }}
-  name: {{ $kps.name }}
-  {{- if $kps.overrideAllValues }}
-  overrideAllValues:
-    {{- toYaml $kps.overrideAllValues | nindent 4 }}
-  {{- else }}
-  {{- $lokiDatasource := dict
-    "name" "Loki" "type" "loki" "uid" "loki" "access" "proxy"
-    "url" (printf "http://%s.%s:3100" $loki.name $loki.namespace)
-    "jsonData" (dict
-      "maxLines" 1000
-      "derivedFields" (list (dict
-        "name" "TraceID"
-        "matcherRegex" "\"traceId\":\"([a-f0-9]+)\""
-        "url" "$${__value.raw}"
-        "datasourceUid" "tempo")))
-  }}
-  {{- $tempoDatasource := dict
-    "name" "Tempo" "type" "tempo" "uid" "tempo" "access" "proxy"
-    "url" (printf "http://%s.%s:3100" $tempo.name $tempo.namespace)
-    "jsonData" (dict
-      "httpMethod" "GET"
-      "tracesToLogsV2" (dict
-        "datasourceUid" "loki"
-        "spanStartTimeShift" "-1h"
-        "spanEndTimeShift" "1h"
-        "filterByTraceID" true
-        "filterBySpanID" false)
-      "tracesToMetrics" (dict
-        "datasourceUid" "prometheus"
-        "spanStartTimeShift" "-1h"
-        "spanEndTimeShift" "1h")
-      "serviceMap" (dict "datasourceUid" "prometheus")
-      "nodeGraph" (dict "enabled" true)
-      "lokiSearch" (dict "datasourceUid" "loki"))
-  }}
-  {{- $kpsDefaults := dict "grafana" (dict
-    "additionalDataSources" (list $lokiDatasource $tempoDatasource))
-  }}
-  {{- $mergedValues := mergeOverwrite $kpsDefaults ($kps.values | default dict) }}
-  values:
-    {{- toYaml $mergedValues | nindent 4 }}
-  {{- end }}
 
 # ==============================================================================
 # Usage: Protect kube-prometheus-stack from deletion until k8s-monitoring is deleted
@@ -87,15 +107,15 @@ metadata:
 spec:
   replayDeletion: true
   of:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: KubePrometheusStack
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $kps.name }}
+      name: {{ $kps.name }}
   by:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: K8sMonitoring
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $state.k8sMonitoring.name }}
+      name: {{ $state.k8sMonitoring.name }}
 {{- end }}
 
 # ==============================================================================
@@ -114,13 +134,13 @@ metadata:
 spec:
   replayDeletion: true
   of:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: KubePrometheusStack
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $kps.name }}
+      name: {{ $kps.name }}
   by:
-    apiVersion: helm.hops.ops.com.ai/v1alpha1
-    kind: GrafanaOperator
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
     resourceRef:
-      name: {{ $state.name }}-{{ $state.grafanaOperator.name }}
+      name: {{ $state.grafanaOperator.name }}
 {{- end }}

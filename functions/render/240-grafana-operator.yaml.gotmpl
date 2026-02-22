@@ -1,6 +1,6 @@
 # code: language=yaml
 #
-# Compose the base helm.hops.ops.com.ai/GrafanaOperator XR
+# Helm Release: grafana-operator
 #
 # grafana-operator is a dependent resource - it depends on prom-stack's Grafana.
 # The Usage protecting kube-prometheus-stack is co-located in 200.
@@ -9,26 +9,29 @@
 {{- $grafOp := $state.grafanaOperator }}
 
 ---
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: GrafanaOperator
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: {{ $state.name }}-{{ $grafOp.name }}
+  name: {{ $grafOp.name }}
   annotations:
     {{ setResourceNameAnnotation "grafana-operator" }}
   labels: {{ $state.labels | toJson }}
 spec:
   managementPolicies: {{ $state.managementPolicies | toJson }}
-  clusterName: {{ $state.clusterName }}
-  labels: {{ $state.labels | toJson }}
+  forProvider:
+    chart:
+      name: grafana-operator
+      repository: oci://ghcr.io/grafana/helm-charts
+      version: 5.21.4
+    namespace: {{ $grafOp.namespace }}
+    {{- if $grafOp.overrideAllValues }}
+    values:
+      {{- toYaml $grafOp.overrideAllValues | nindent 6 }}
+    {{- else if $grafOp.values }}
+    values:
+      {{- toYaml $grafOp.values | nindent 6 }}
+    {{- end }}
+  rollbackLimit: 3
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
     kind: {{ $state.helmProviderConfigRef.kind }}
-  namespace: {{ $grafOp.namespace }}
-  name: {{ $grafOp.name }}
-  {{- if $grafOp.overrideAllValues }}
-  overrideAllValues:
-    {{- toYaml $grafOp.overrideAllValues | nindent 4 }}
-  {{- else if $grafOp.values }}
-  values:
-    {{- toYaml $grafOp.values | nindent 4 }}
-  {{- end }}

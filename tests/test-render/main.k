@@ -12,7 +12,7 @@ import models.k8s.apimachinery.pkg.apis.meta.v1 as metav1
 
 _items = [
     # ==========================================================================
-    # Test 1: Minimal input renders all 5 base components
+    # Test 1: Minimal input renders all 5 Helm Releases
     # ==========================================================================
     metav1alpha1.CompositionTest {
         metadata.name = "minimal-renders-all-components"
@@ -27,29 +27,29 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "KubePrometheusStack"
-                    metadata.name = "test-observe-kube-prometheus-stack"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "kube-prometheus-stack"
                 }
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "Loki"
-                    metadata.name = "test-observe-loki"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "loki"
                 }
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "Tempo"
-                    metadata.name = "test-observe-tempo"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "tempo"
                 }
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "K8sMonitoring"
-                    metadata.name = "test-observe-k8s-monitoring"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "k8s-monitoring"
                 }
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "GrafanaOperator"
-                    metadata.name = "test-observe-grafana-operator"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "grafana-operator"
                 }
             ]
         }
@@ -74,10 +74,10 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "KubePrometheusStack"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
                     metadata = {
-                        name = "labeled-observe-kube-prometheus-stack"
+                        name = "kube-prometheus-stack"
                         labels = {
                             "hops.ops.com.ai/managed" = "true"
                             "hops.ops.com.ai/observe" = "labeled-observe"
@@ -87,10 +87,10 @@ _items = [
                     }
                 }
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "Loki"
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
                     metadata = {
-                        name = "labeled-observe-loki"
+                        name = "loki"
                         labels = {
                             "hops.ops.com.ai/managed" = "true"
                             "hops.ops.com.ai/observe" = "labeled-observe"
@@ -119,16 +119,16 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "KubePrometheusStack"
-                    metadata.name = "ds-test-kube-prometheus-stack"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "kube-prometheus-stack"
+                    spec.forProvider.values = {
                         grafana.additionalDataSources = [
                             {
                                 name = "Loki"
                                 type = "loki"
                                 uid = "loki"
-                                url = "http://loki.monitoring:3100"
+                                url = "http://loki-gateway.monitoring:80"
                                 access = "proxy"
                                 jsonData = {
                                     maxLines = 1000
@@ -146,7 +146,7 @@ _items = [
                                 name = "Tempo"
                                 type = "tempo"
                                 uid = "tempo"
-                                url = "http://tempo.monitoring:3100"
+                                url = "http://tempo.monitoring:3200"
                                 access = "proxy"
                                 jsonData = {
                                     httpMethod = "GET"
@@ -175,7 +175,7 @@ _items = [
     }
 
     # ==========================================================================
-    # Test 4: overrideAllValues on KPS replaces cross-component defaults
+    # Test 4: overrideAllValues on KPS replaces all defaults
     # ==========================================================================
     metav1alpha1.CompositionTest {
         metadata.name = "override-all-values-replaces-defaults"
@@ -197,10 +197,10 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "KubePrometheusStack"
-                    metadata.name = "override-test-kube-prometheus-stack"
-                    spec.overrideAllValues = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "kube-prometheus-stack"
+                    spec.forProvider.values = {
                         grafana = {enabled = False}
                     }
                 }
@@ -224,10 +224,10 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "K8sMonitoring"
-                    metadata.name = "dest-test-k8s-monitoring"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "k8s-monitoring"
+                    spec.forProvider.values = {
                         destinations = [
                             {
                                 name = "prometheus"
@@ -237,7 +237,7 @@ _items = [
                             {
                                 name = "loki"
                                 type = "loki"
-                                url = "http://loki.monitoring:3100/loki/api/v1/push"
+                                url = "http://loki-gateway.monitoring:80/loki/api/v1/push"
                             }
                             {
                                 name = "tempo"
@@ -252,7 +252,7 @@ _items = [
         }
     }
     # ==========================================================================
-    # Test 6: KPS user values at non-conflicting key merge with cross-component defaults
+    # Test 6: KPS user values at non-conflicting key merge with defaults
     # ==========================================================================
     # User provides prometheus config; cross-component grafana datasources preserved
     metav1alpha1.CompositionTest {
@@ -279,16 +279,16 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "KubePrometheusStack"
-                    metadata.name = "kps-merge-kube-prometheus-stack"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "kube-prometheus-stack"
+                    spec.forProvider.values = {
                         grafana.additionalDataSources = [
                             {
                                 name = "Loki"
                                 type = "loki"
                                 uid = "loki"
-                                url = "http://loki.monitoring:3100"
+                                url = "http://loki-gateway.monitoring:80"
                                 access = "proxy"
                                 jsonData = {
                                     maxLines = 1000
@@ -306,7 +306,7 @@ _items = [
                                 name = "Tempo"
                                 type = "tempo"
                                 uid = "tempo"
-                                url = "http://tempo.monitoring:3100"
+                                url = "http://tempo.monitoring:3200"
                                 access = "proxy"
                                 jsonData = {
                                     httpMethod = "GET"
@@ -336,9 +336,9 @@ _items = [
     }
 
     # ==========================================================================
-    # Test 7: KPS conflicting key (grafana) deep-merges with cross-component defaults
+    # Test 7: KPS conflicting key (grafana) deep-merges with defaults
     # ==========================================================================
-    # mergeOverwrite: user grafana values merge with cross-component grafana datasources
+    # mergeOverwrite: user grafana values merge with chart + cross-component defaults
     metav1alpha1.CompositionTest {
         metadata.name = "kps-conflicting-values-deep-merged"
         spec = {
@@ -361,17 +361,17 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "KubePrometheusStack"
-                    metadata.name = "kps-conflict-kube-prometheus-stack"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "kube-prometheus-stack"
+                    spec.forProvider.values = {
                         grafana = {
                             additionalDataSources = [
                                 {
                                     name = "Loki"
                                     type = "loki"
                                     uid = "loki"
-                                    url = "http://loki.monitoring:3100"
+                                    url = "http://loki-gateway.monitoring:80"
                                     access = "proxy"
                                     jsonData = {
                                         maxLines = 1000
@@ -389,7 +389,7 @@ _items = [
                                     name = "Tempo"
                                     type = "tempo"
                                     uid = "tempo"
-                                    url = "http://tempo.monitoring:3100"
+                                    url = "http://tempo.monitoring:3200"
                                     access = "proxy"
                                     jsonData = {
                                         httpMethod = "GET"
@@ -442,10 +442,10 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "K8sMonitoring"
-                    metadata.name = "k8smon-merge-k8s-monitoring"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "k8s-monitoring"
+                    spec.forProvider.values = {
                         destinations = [
                             {
                                 name = "prometheus"
@@ -455,7 +455,7 @@ _items = [
                             {
                                 name = "loki"
                                 type = "loki"
-                                url = "http://loki.monitoring:3100/loki/api/v1/push"
+                                url = "http://loki-gateway.monitoring:80/loki/api/v1/push"
                             }
                             {
                                 name = "tempo"
@@ -494,10 +494,10 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "Tempo"
-                    metadata.name = "tempo-merge-tempo"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "tempo"
+                    spec.forProvider.values = {
                         tempo.metricsGenerator = {
                             enabled = True
                             remoteWriteUrl = "http://kube-prometheus-stack-prometheus.monitoring:9090/api/v1/write"
@@ -510,10 +510,10 @@ _items = [
     }
 
     # ==========================================================================
-    # Test 10: Loki user values pass through directly (no cross-component defaults)
+    # Test 10: Loki values merge with defaults
     # ==========================================================================
     metav1alpha1.CompositionTest {
-        metadata.name = "loki-values-passthrough"
+        metadata.name = "loki-values-merge-with-defaults"
         spec = {
             compositionPath = "apis/observes/composition.yaml"
             xrdPath = "apis/observes/definition.yaml"
@@ -532,10 +532,11 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "Loki"
-                    metadata.name = "loki-vals-loki"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "loki"
+                    spec.forProvider.values = {
+                        deploymentMode = "SingleBinary"
                         loki.auth_enabled = False
                     }
                 }
@@ -566,10 +567,10 @@ _items = [
             }
             assertResources = [
                 {
-                    apiVersion = "helm.hops.ops.com.ai/v1alpha1"
-                    kind = "GrafanaOperator"
-                    metadata.name = "grafop-vals-grafana-operator"
-                    spec.values = {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "grafana-operator"
+                    spec.forProvider.values = {
                         watchNamespaces = ["monitoring"]
                     }
                 }

@@ -1,7 +1,7 @@
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: Loki
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: observe-loki
+  name: loki
   annotations:
     crossplane.io/composition-resource-name: loki
 status:

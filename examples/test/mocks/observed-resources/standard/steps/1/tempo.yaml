@@ -1,7 +1,7 @@
-apiVersion: helm.hops.ops.com.ai/v1alpha1
-kind: Tempo
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
 metadata:
-  name: observe-tempo
+  name: tempo
   annotations:
     crossplane.io/composition-resource-name: tempo
 status:
