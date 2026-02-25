@@ -14,7 +14,7 @@ A single Crossplane resource that deploys a complete, production-wired observabi
 **With Observe:**
 - One resource, one API surface, all five components wired together automatically
 - Grafana datasources pre-configured with full trace-to-log and trace-to-metric correlation
-- Safe deletion ordering enforced via Usage resources (7 dependency edges)
+- Safe deletion ordering enforced via Usage resources (5 dependency edges)
 - Cross-component URLs derived from release names — rename a component and everything adjusts
 - Override any chart value while keeping cross-component defaults intact
 
@@ -42,7 +42,7 @@ A single Crossplane resource that deploys a complete, production-wired observabi
    └──────────────────────────────────────────────┘
 ```
 
-**16 composed resources:** 5 Helm Releases + 4 Kubernetes Objects + 7 Usage protections
+**16 composed resources:** 5 Helm Releases + 6 Kubernetes Objects + 5 Usage protections
 
 | Component | Chart | Version | Purpose |
 |-----------|-------|---------|---------|
@@ -173,20 +173,58 @@ These integrations happen automatically:
 | k8s-monitoring | Tempo | Traces push via OTLP gRPC `:4317` |
 | OpenCost | Prometheus | Cost queries via `/api/v1/query` (OpenCost appends this path) |
 
-## Deletion Ordering
+## Creation Order
 
-Usage resources enforce safe teardown:
+Resources are created as their dependencies become ready:
 
+```mermaid
+graph TD
+    XR[Observe XR] --> kps[kube-prometheus-stack]
+    XR --> loki[loki]
+    XR --> tempo[tempo]
+    XR --> k8smon[k8s-monitoring]
+    XR --> grafop[grafana-operator]
+
+    grafop -.->|ready| instance[grafana-instance]
+    instance -.->|ready| ds-prom[datasource-prometheus]
+    instance -.->|ready| ds-loki[datasource-loki]
+    instance -.->|ready| ds-tempo[datasource-tempo]
+    instance -.->|ready| dash-overview[dashboard-opencost-overview]
+    instance -.->|ready| dash-ns[dashboard-opencost-namespace]
 ```
-datasource-prometheus ─┐
-datasource-loki ───────┤─→ grafana-instance ─→ grafana-operator ─→ kube-prometheus-stack
-datasource-tempo ──────┘
-                                               k8s-monitoring ───→ kube-prometheus-stack
-                                               k8s-monitoring ───→ loki
-                                               k8s-monitoring ───→ tempo
+
+All 5 Helm releases start immediately. Grafana CRs (instance, datasources, dashboards) wait for the operator to be ready.
+
+## Deletion Order
+
+Usage resources enforce safe teardown — dependents delete before the resources they depend on:
+
+```mermaid
+graph LR
+    ds-prom[datasource-prometheus] -->|blocks| instance[grafana-instance]
+    ds-loki[datasource-loki] -->|blocks| instance
+    ds-tempo[datasource-tempo] -->|blocks| instance
+    instance -->|blocks| grafop[grafana-operator]
+    grafop -->|blocks| kps[kube-prometheus-stack]
+
+    k8smon[k8s-monitoring] -.- free1[ ]
+    loki[loki] -.- free2[ ]
+    tempo[tempo] -.- free3[ ]
+
+    style free1 fill:none,stroke:none
+    style free2 fill:none,stroke:none
+    style free3 fill:none,stroke:none
 ```
 
-Dependents are deleted before the resources they depend on.
+| Phase | Deletes | Waits for |
+|-------|---------|-----------|
+| 1 | k8s-monitoring, loki, tempo, dashboards | nothing — immediate |
+| 2 | datasources | nothing — immediate |
+| 3 | grafana-instance | datasources gone |
+| 4 | grafana-operator | grafana-instance gone |
+| 5 | kube-prometheus-stack | grafana-operator gone |
+
+The grafana chain ensures CRDs (managed by grafana-operator, installed by kps) stay alive until all CRs are cleaned up.
 
 ## Sending Traces
 

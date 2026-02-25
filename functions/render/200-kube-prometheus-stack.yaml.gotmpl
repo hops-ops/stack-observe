@@ -98,3 +98,26 @@ spec:
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
     kind: {{ $state.helmProviderConfigRef.kind }}
+
+{{- if and $state.observed.grafanaOperator.ready $state.observed.kubePrometheusStack.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-grafana-operator-before-kube-prometheus-stack
+  annotations:
+    {{ setResourceNameAnnotation "usage-kps-grafop" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
+    resourceRef:
+      name: {{ $kps.name }}
+  by:
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
+    resourceRef:
+      name: {{ $state.grafanaOperator.name }}
+{{- end }}

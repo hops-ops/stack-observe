@@ -10,7 +10,7 @@
 # ==============================================================================
 
 {{- $checkReady := dict }}
-{{- range $key := list "kube-prometheus-stack" "loki" "tempo" "k8s-monitoring" "grafana-operator" "grafana-instance" "datasource-prometheus" "datasource-loki" "datasource-tempo" "dashboard-opencost-overview" "dashboard-opencost-namespace" }}
+{{- range $key := list "kube-prometheus-stack" "loki" "tempo" "k8s-monitoring" "grafana-operator" "grafana-instance" "datasource-prometheus" "datasource-loki" "datasource-tempo" }}
   {{- $entry := get $observed $key | default dict }}
   {{- $resource := $entry.resource | default dict }}
   {{- $status := $resource.status | default dict }}
@@ -36,8 +36,6 @@
   "datasourcePrometheus" (dict "ready" (get $checkReady "datasource-prometheus"))
   "datasourceLoki" (dict "ready" (get $checkReady "datasource-loki"))
   "datasourceTempo" (dict "ready" (get $checkReady "datasource-tempo"))
-  "dashboardOpencostOverview" (dict "ready" (get $checkReady "dashboard-opencost-overview"))
-  "dashboardOpencostNamespace" (dict "ready" (get $checkReady "dashboard-opencost-namespace"))
 ) }}
 
 # ==============================================================================
