@@ -75,31 +75,3 @@ spec:
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
     kind: {{ $state.helmProviderConfigRef.kind }}
-
-# ==============================================================================
-# Usage: Protect Loki from deletion until k8s-monitoring is deleted
-# ==============================================================================
-# k8s-monitoring sends logs to Loki. Deleting Loki first would leave
-# k8s-monitoring unable to ship logs.
-{{- if and $state.observed.loki.ready $state.observed.k8sMonitoring.ready }}
----
-apiVersion: protection.crossplane.io/v1beta1
-kind: Usage
-metadata:
-  name: {{ $state.name }}-delete-k8s-monitoring-before-loki
-  annotations:
-    {{ setResourceNameAnnotation "usage-loki-k8smon" }}
-  labels: {{ $state.labels | toJson }}
-spec:
-  replayDeletion: true
-  of:
-    apiVersion: helm.m.crossplane.io/v1beta1
-    kind: Release
-    resourceRef:
-      name: {{ $loki.name }}
-  by:
-    apiVersion: helm.m.crossplane.io/v1beta1
-    kind: Release
-    resourceRef:
-      name: {{ $state.k8sMonitoring.name }}
-{{- end }}

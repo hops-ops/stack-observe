@@ -70,3 +70,146 @@ spec:
     kind: {{ $k8sPCR.kind }}
 
 {{- end }}
+
+# ==============================================================================
+# Usages: Protect datasources from deletion until dashboards are deleted
+# ==============================================================================
+# Dashboards reference datasources by UID. Delete dashboards before datasources.
+
+{{- if and $state.observed.dashboardOpencostOverview.ready $state.observed.datasourcePrometheus.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-dashboard-overview-before-ds-prometheus
+  annotations:
+    {{ setResourceNameAnnotation "usage-dsprom-dash-overview" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-prometheus
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-dashboard-opencost-overview
+{{- end }}
+
+{{- if and $state.observed.dashboardOpencostOverview.ready $state.observed.datasourceLoki.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-dashboard-overview-before-ds-loki
+  annotations:
+    {{ setResourceNameAnnotation "usage-dsloki-dash-overview" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-loki
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-dashboard-opencost-overview
+{{- end }}
+
+{{- if and $state.observed.dashboardOpencostOverview.ready $state.observed.datasourceTempo.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-dashboard-overview-before-ds-tempo
+  annotations:
+    {{ setResourceNameAnnotation "usage-dstempo-dash-overview" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-tempo
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-dashboard-opencost-overview
+{{- end }}
+
+{{- if and $state.observed.dashboardOpencostNamespace.ready $state.observed.datasourcePrometheus.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-dashboard-namespace-before-ds-prometheus
+  annotations:
+    {{ setResourceNameAnnotation "usage-dsprom-dash-namespace" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-prometheus
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-dashboard-opencost-namespace
+{{- end }}
+
+{{- if and $state.observed.dashboardOpencostNamespace.ready $state.observed.datasourceLoki.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-dashboard-namespace-before-ds-loki
+  annotations:
+    {{ setResourceNameAnnotation "usage-dsloki-dash-namespace" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-loki
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-dashboard-opencost-namespace
+{{- end }}
+
+{{- if and $state.observed.dashboardOpencostNamespace.ready $state.observed.datasourceTempo.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-dashboard-namespace-before-ds-tempo
+  annotations:
+    {{ setResourceNameAnnotation "usage-dstempo-dash-namespace" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-datasource-tempo
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-dashboard-opencost-namespace
+{{- end }}
